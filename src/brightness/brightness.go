@@ -73,7 +73,7 @@ func (b *Brightness) RunAutoBrightness() error {
 		if len(frame) != 0 {
 			prc := b.getBright(frame, true)
 			aver := b.getAveragePercent(prc)
-			fmt.Println("aver:", aver, "curr:", prc)
+			//fmt.Println("aver:", aver, "curr:", prc)
 			lock.Lock()
 			go func() {
 				b.setBrightness(aver)
