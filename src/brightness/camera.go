@@ -27,7 +27,7 @@ func CameraON() error {
 	if err != nil {
 		return err
 	}
-	cam.SetAutoWhiteBalance(true)
+	//cam.SetAutoWhiteBalance(true)
 
 	err = setFormat()
 	if err != nil {
