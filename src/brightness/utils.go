@@ -25,3 +25,33 @@ func writeFileInt(name string, val int) {
 		panic(err)
 	}
 }
+
+func isSetBrightness(lastVal, currVal, count *int) bool {
+	last := *lastVal
+	curr := *currVal
+	ret := false
+	if last != int(curr) {
+		delta := last - curr
+		if delta < 0 {
+			delta = -delta
+		}
+		if delta > 5 {
+			ret = true
+		}
+	} else {
+		*count = 0
+		return false
+	}
+
+	if ret == false {
+		ret = *count > 9
+		*count++
+	}
+
+	if ret == true {
+		*lastVal = curr
+		*count = 0
+	}
+
+	return ret
+}

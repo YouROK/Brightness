@@ -1,15 +1,20 @@
 package brightness
 
 import (
+	"errors"
 	"github.com/blackjack/webcam"
 	"image"
 	"image/jpeg"
 	"os"
+	"sort"
+	"strings"
 )
 
 var (
 	cam     *webcam.Webcam
 	camPath string
+	width   int
+	height  int
 )
 
 func SetCameraDevice(path string) {
@@ -22,11 +27,20 @@ func CameraON() error {
 	if err != nil {
 		return err
 	}
+	cam.SetAutoWhiteBalance(true)
+
+	err = setFormat()
+	if err != nil {
+		cam.Close()
+		return err
+	}
+
 	return cam.StartStreaming()
 }
 
 func CameraOFF() error {
 	if cam != nil {
+		cam.SetAutoWhiteBalance(true)
 		return cam.Close()
 	}
 	return nil
@@ -52,6 +66,40 @@ func CameraGetFrame(timeout int) ([]byte, error) {
 		copy(buffer, frame)
 	}
 	return buffer, nil
+}
+
+func setFormat() error {
+	format_desc := cam.GetSupportedFormats()
+	var format webcam.PixelFormat
+
+	for f := range format_desc {
+		if strings.Contains(format_desc[f], "YUYV") {
+			format = f
+			break
+		}
+	}
+
+	if format == 0 {
+		return errors.New("Support format not found")
+	}
+
+	frames := cam.GetSupportedFrameSizes(format)
+	if len(frames) == 0 {
+		return errors.New("Supported frame sizes not found")
+	}
+
+	sort.Slice(frames, func(i, j int) bool {
+		ls := frames[i].MaxWidth * frames[i].MaxHeight
+		rs := frames[j].MaxWidth * frames[j].MaxHeight
+		return ls < rs
+	})
+
+	size := frames[0]
+
+	_, w, h, err := cam.SetImageFormat(format, uint32(size.MaxWidth), uint32(size.MaxHeight))
+	width = int(w)
+	height = int(h)
+	return err
 }
 
 func SaveJPEG(name string, frame []byte) error {
@@ -80,9 +128,9 @@ func SaveJPEG(name string, frame []byte) error {
 		Cb:             cbBytes,
 		Cr:             crBytes,
 		SubsampleRatio: image.YCbCrSubsampleRatio422,
-		YStride:        320,
-		CStride:        160,
-		Rect:           image.Rect(0, 0, 320, 240),
+		YStride:        width,
+		CStride:        height / 2,
+		Rect:           image.Rect(0, 0, width, height),
 	}
 
 	out, err := os.Create(name)

@@ -1,5 +1,6 @@
 #!/bin/bash
 
-#GOROOT=/usr/local/go
+GOROOT=/usr/local/go
 GOPATH=$PWD
-go build -o ab -gcflags "-N -l" main
+echo "GOPATH=$GOPATH"
+go build -o ab -gcflags "-N -l" ./src/main

@@ -40,7 +40,10 @@ func GetOptions() *Options {
 
 type Brightness struct {
 	opt            *Options
+	lastPercent    int
+	lastCount      int
 	averagePercent []int
+	isStop         bool
 }
 
 func NewBrightness(opts *Options) *Brightness {
@@ -65,7 +68,8 @@ func (b *Brightness) RunAutoBrightness() error {
 		defer CameraOFF()
 	}
 
-	for {
+	b.isStop = false
+	for !b.isStop {
 		frame, err := b.getFrame()
 		if err != nil {
 			return err
@@ -74,13 +78,20 @@ func (b *Brightness) RunAutoBrightness() error {
 			prc := b.getBright(frame, true)
 			aver := b.getAveragePercent(prc)
 			//fmt.Println("aver:", aver, "curr:", prc)
-			lock.Lock()
-			go func() {
-				b.setBrightness(aver)
-				lock.Unlock()
-			}()
+			SaveJPEG("./camera.jpeg", frame)
+			if isSetBrightness(&b.lastPercent, &aver, &b.lastCount) {
+				b.lastPercent = aver
+				lock.Lock()
+				go func() {
+					b.setBrightness(aver)
+					lock.Unlock()
+				}()
+			} else {
+				time.Sleep(time.Second)
+			}
 		}
 	}
+	return nil
 }
 
 func (b *Brightness) TestBrightness() error {
@@ -91,7 +102,8 @@ func (b *Brightness) TestBrightness() error {
 		defer CameraOFF()
 	}
 
-	for {
+	b.isStop = false
+	for !b.isStop {
 		frame, err := b.getFrame()
 		if err != nil {
 			return err
@@ -108,6 +120,11 @@ func (b *Brightness) TestBrightness() error {
 			}()
 		}
 	}
+	return nil
+}
+
+func (b *Brightness) Stop() {
+	b.isStop = true
 }
 
 func (b *Brightness) getFrame() ([]byte, error) {
@@ -174,21 +191,17 @@ func (b *Brightness) getAveragePercent(percent int) int {
 	return all / len(b.averagePercent)
 }
 
-var lastVal int
-
 func (b *Brightness) setBrightness(prc int) {
 	maxBright := readFileInt(b.opt.MaxBrightnessPath)
 	actBright := readFileInt(b.opt.ActualBrightnessPath)
 	targBright := maxBright / 100 * prc
 	var curr float64 = float64(actBright)
 	step := float64(targBright-actBright) / 100
-
 	for i := 0; i < 99; i++ {
 		curr += step
-		writeFileInt(b.opt.SetBrightnessPath, int(curr))
-		if lastVal != int(curr) {
-			//fmt.Println("Brightness:", int(curr))
-			lastVal = int(curr)
+		if actBright != int(curr) {
+			writeFileInt(b.opt.SetBrightnessPath, int(curr))
+			actBright = int(curr)
 		}
 		time.Sleep(time.Millisecond * 10)
 	}
