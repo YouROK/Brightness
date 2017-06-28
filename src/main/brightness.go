@@ -23,7 +23,7 @@ func init() {
 	flag.StringVar(&opt.ActualBrightnessPath, "abp", "/sys/class/backlight/intel_backlight/actual_brightness", "Path to actual brightness")
 
 	flag.IntVar(&opt.MinPercent, "min", 8, "Percentage with minimum illumination")
-	flag.IntVar(&opt.MaxPercent, "max", 60, "Percentage with maximum illumination")
+	flag.IntVar(&opt.MaxPercent, "max", 65, "Percentage with maximum illumination")
 	flag.IntVar(&opt.AveragePercentCount, "apc", 5, "Average percent count")
 
 	flag.Parse()
