@@ -27,7 +27,6 @@ func CameraON() error {
 	if err != nil {
 		return err
 	}
-	//cam.SetAutoWhiteBalance(true)
 
 	err = setFormat()
 	if err != nil {
@@ -35,15 +34,22 @@ func CameraON() error {
 		return err
 	}
 
-	return cam.StartStreaming()
+	return nil
 }
 
 func CameraOFF() error {
 	if cam != nil {
-		cam.SetAutoWhiteBalance(true)
 		return cam.Close()
 	}
 	return nil
+}
+
+func CameraStart() error {
+	return cam.StartStreaming()
+}
+
+func CameraStop() error {
+	return cam.StopStreaming()
 }
 
 func CameraGetFrame(timeout int) ([]byte, error) {
