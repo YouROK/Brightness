@@ -63,11 +63,12 @@ func NewBrightness(opts *Options) *Brightness {
 func (b *Brightness) RunAutoBrightness() error {
 	var lock sync.Mutex
 
+	CameraON()
+	defer CameraOFF()
 	if b.opt.CameraAlwaysOn {
-		CameraON()
-		defer CameraOFF()
+		CameraStart()
 	}
-
+	stepCount := 0
 	b.isStop = false
 	for !b.isStop {
 		frame, err := b.getFrame()
@@ -78,7 +79,13 @@ func (b *Brightness) RunAutoBrightness() error {
 			prc := b.getBright(frame, true)
 			aver := b.getAveragePercent(prc)
 			//fmt.Println("aver:", aver, "curr:", prc)
-			SaveJPEG("./camera.jpeg", frame)
+			//SaveJPEG("./camera.jpeg", frame)
+			if stepCount > 60 && b.opt.CameraAlwaysOn {
+				CameraStop()
+				time.Sleep(time.Millisecond * 100)
+				CameraStart()
+				stepCount = 0
+			}
 			if isSetBrightness(&b.lastPercent, &aver, &b.lastCount) {
 				b.lastPercent = aver
 				lock.Lock()
@@ -87,6 +94,9 @@ func (b *Brightness) RunAutoBrightness() error {
 					lock.Unlock()
 				}()
 			} else {
+				if b.opt.CameraAlwaysOn {
+					stepCount++
+				}
 				time.Sleep(time.Second)
 			}
 		}
@@ -97,9 +107,10 @@ func (b *Brightness) RunAutoBrightness() error {
 func (b *Brightness) TestBrightness() error {
 	var lock sync.Mutex
 
+	CameraON()
+	defer CameraOFF()
 	if b.opt.CameraAlwaysOn {
-		CameraON()
-		defer CameraOFF()
+		CameraStart()
 	}
 
 	b.isStop = false
@@ -129,18 +140,20 @@ func (b *Brightness) Stop() {
 
 func (b *Brightness) getFrame() ([]byte, error) {
 	if !b.opt.CameraAlwaysOn {
-		err := CameraON()
+		err := CameraStart()
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	frame, err := CameraGetFrame(b.opt.CameraTimeout)
 	if err != nil {
 		CameraOFF()
 		return nil, err
 	}
+
 	if !b.opt.CameraAlwaysOn {
-		err := CameraOFF()
+		err := CameraStop()
 		if err != nil {
 			return nil, err
 		}
