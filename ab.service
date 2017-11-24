@@ -1,0 +1,10 @@
+[Unit]
+Description=Auto Brightness
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/ab
+
+[Install]
+WantedBy=multi-user.target
+
